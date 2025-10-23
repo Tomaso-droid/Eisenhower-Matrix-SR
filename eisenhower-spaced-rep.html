@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eisenhower Matrix + Spaced Repetition Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .stats-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .input-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr 100px;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
+        input, select, button {
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .btn-add {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .btn-add:hover {
+            background: #5568d3;
+        }
+        
+        .btn-export {
+            background: #10b981;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 12px 20px;
+        }
+        
+        .btn-import {
+            background: #f59e0b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 12px 20px;
+        }
+        
+        .btn-clear {
+            background: #ef4444;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            padding: 12px 20px;
+        }
+        
+        .matrix {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .quadrant {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            min-height: 300px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .quadrant-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 3px solid;
+        }
+        
+        .q1 .quadrant-header { border-color: #ef4444; }
+        .q2 .quadrant-header { border-color: #3b82f6; }
+        .q3 .quadrant-header { border-color: #f59e0b; }
+        .q4 .quadrant-header { border-color: #10b981; }
+        
+        .quadrant h2 {
+            font-size: 1.3em;
+            flex-grow: 1;
+        }
+        
+        .badge {
+            background: #e0e0e0;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .task {
+            background: #f9fafb;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+        
+        .task:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        
+        .task-title {
+            font-weight: 600;
+            color: #1f2937;
+            flex-grow: 1;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 8px;
+        }
+        
+        .tag {
+            background: #e0e7ff;
+            color: #4338ca;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        
+        .difficulty-easy { background: #d1fae5; color: #065f46; }
+        .difficulty-medium { background: #fef3c7; color: #92400e; }
+        .difficulty-hard { background: #fee2e2; color: #991b1b; }
+        
+        .review-date {
+            font-weight: 600;
+        }
+        
+        .review-soon {
+            color: #ef4444;
+            font-weight: bold;
+        }
+        
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+        }
+        
+        .btn-complete {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            margin-right: 5px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #9ca3af;
+            padding: 40px;
+            font-style: italic;
+        }
+        
+        .legend {
+            background: white;
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .color-box {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+        }
+        
+        .progress-bar {
+            background: #e5e7eb;
+            height: 10px;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+        
+        .progress-fill {
+            background: #667eea;
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 968px) {
+            .matrix {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-bar {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Eisenhower Matrix + Spaced Repetition Pro</h1>
+        
+        <div class="stats-bar">
+            <div class="stat-card">
+                <div class="stat-number" id="total-tasks">0</div>
+                <div class="stat-label">Gesamt Aufgaben</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="today-reviews">0</div>
+                <div class="stat-label">Reviews heute</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completed-tasks">0</div>
+                <div class="stat-label">Abgeschlossen</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completion-rate">0%</div>
+                <div class="stat-label">Fortschritt</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <div class="input-group">
+                <input type="text" id="taskInput" placeholder="Aufgabe eingeben...">
+                <select id="urgencySelect">
+                    <option value="">Dringlichkeit</option>
+                    <option value="urgent">Dringend</option>
+                    <option value="not-urgent">Nicht dringend</option>
+                </select>
+                <select id="importanceSelect">
+                    <option value="">Wichtigkeit</option>
+                    <option value="important">Wichtig</option>
+                    <option value="not-important">Nicht wichtig</option>
+                </select>
+                <select id="difficultySelect">
+                    <option value="easy">🟢 Leicht</option>
+                    <option value="medium">🟡 Mittel</option>
+                    <option value="hard">🔴 Schwer</option>
+                </select>
+                <select id="intervalSelect">
+                    <option value="1">1 Tag</option>
+                    <option value="3">3 Tage</option>
+                    <option value="7">1 Woche</option>
+                    <option value="14">2 Wochen</option>
+                    <option value="30">1 Monat</option>
+                </select>
+                <button class="btn-add" onclick="addTask()">➕ Hinzufügen</button>
+            </div>
+            <div class="button-group">
+                <button class="btn-export" onclick="exportData()">📥 Export JSON</button>
+                <button class="btn-import" onclick="showImportModal()">📤 Import JSON</button>
+                <button class="btn-clear" onclick="clearAllData()">🗑️ Alle löschen</button>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="color-box" style="background: #ef4444;"></div>
+                <span><strong>Q1:</strong> Dringend & Wichtig</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #3b82f6;"></div>
+                <span><strong>Q2:</strong> Wichtig (Lernen)</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #f59e0b;"></div>
+                <span><strong>Q3:</strong> Dringend</span>
+            </div>
+            <div class="legend-item">
+                <div class="color-box" style="background: #10b981;"></div>
+                <span><strong>Q4:</strong> Eliminieren</span>
+            </div>
+        </div>
+        
+        <div class="matrix">
+            <div class="quadrant q1">
+                <div class="quadrant-header">
+                    <h2>🔥 Dringend & Wichtig</h2>
+                    <span class="badge" id="q1-count">0</span>
+                </div>
+                <div id="q1-tasks"></div>
+            </div>
+            
+            <div class="quadrant q2">
+                <div class="quadrant-header">
+                    <h2>📚 Wichtig (Nicht dringend)</h2>
+                    <span class="badge" id="q2-count">0</span>
+                </div>
+                <div id="q2-tasks"></div>
+            </div>
+            
+            <div class="quadrant q3">
+                <div class="quadrant-header">
+                    <h2>⚡ Dringend (Nicht wichtig)</h2>
+                    <span class="badge" id="q3-count">0</span>
+                </div>
+                <div id="q3-tasks"></div>
+            </div>
+            
+            <div class="quadrant q4">
+                <div class="quadrant-header">
+                    <h2>🗑️ Weder noch</h2>
+                    <span class="badge" id="q4-count">0</span>
+                </div>
+                <div id="q4-tasks"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal" id="importModal">
+        <div class="modal-content">
+            <h2>Daten importieren</h2>
+            <p style="margin: 15px 0; color: #6b7280;">Füge hier deinen JSON-Export ein:</p>
+            <textarea id="importData" placeholder='{"tasks": [...], "stats": {...}}'></textarea>
+            <div class="modal-buttons">
+                <button class="btn-clear" onclick="closeImportModal()">Abbrechen</button>
+                <button class="btn-add" onclick="importData()">Importieren</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let tasks = [];
+        let taskIdCounter = 0;
+        let stats = {
+            totalCreated: 0,
+            totalCompleted: 0
+        };
+
+        function loadData() {
+            const savedTasks = localStorage.getItem('eisenhowerTasks');
+            const savedStats = localStorage.getItem('eisenhowerStats');
+            const savedCounter = localStorage.getItem('taskCounter');
+            
+            if (savedTasks) {
+                tasks = JSON.parse(savedTasks);
+                tasks.forEach(task => {
+                    task.reviewDate = new Date(task.reviewDate);
+                    task.createdDate = new Date(task.createdDate);
+                });
+            }
+            if (savedStats) {
+                stats = JSON.parse(savedStats);
+            }
+            if (savedCounter) {
+                taskIdCounter = parseInt(savedCounter);
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('eisenhowerTasks', JSON.stringify(tasks));
+            localStorage.setItem('eisenhowerStats', JSON.stringify(stats));
+            localStorage.setItem('taskCounter', taskIdCounter.toString());
+        }
+
+        function addTask() {
+            const taskInput = document.getElementById('taskInput');
+            const urgency = document.getElementById('urgencySelect').value;
+            const importance = document.getElementById('importanceSelect').value;
+            const difficulty = document.getElementById('difficultySelect').value;
+            const interval = parseInt(document.getElementById('intervalSelect').value);
+            
+            if (!taskInput.value.trim()) {
+                alert('Bitte gib eine Aufgabe ein!');
+                return;
+            }
+            
+            if (!urgency || !importance) {
+                alert('Bitte wähle Dringlichkeit und Wichtigkeit aus!');
+                return;
+            }
+            
+            const reviewDate = new Date();
+            reviewDate.setDate(reviewDate.getDate() + interval);
+            
+            const task = {
+                id: taskIdCounter++,
+                title: taskInput.value.trim(),
+                urgent: urgency === 'urgent',
+                important: importance === 'important',
+                difficulty: difficulty,
+                interval: interval,
+                reviewDate: reviewDate,
+                createdDate: new Date(),
+                completedCount: 0
+            };
+            
+            tasks.push(task);
+            stats.totalCreated++;
+            taskInput.value = '';
+            
+            saveData();
+            renderTasks();
+            updateStats();
+        }
+        
+        function deleteTask(id) {
+            tasks = tasks.filter(task => task.id !== id);
+            saveData();
+            renderTasks();
+            updateStats();
+        }
+        
+        function completeTask(id) {
+            const task = tasks.find(t => t.id === id);
+            if (task) {
+                task.completedCount++;
+                stats.totalCompleted++;
+                
+                let newInterval = task.interval;
+                if (task.difficulty === 'easy') {
+                    newInterval = Math.min(task.interval * 2, 90);
+                } else if (task.difficulty === 'medium') {
+                    newInterval = Math.min(task.interval * 1.5, 60);
+                } else {
+                    newInterval = Math.min(task.interval * 1.2, 30);
+                }
+                
+                task.interval = Math.round(newInterval);
+                
+                const newReviewDate = new Date();
+                newReviewDate.setDate(newReviewDate.getDate() + task.interval);
+                task.reviewDate = newReviewDate;
+                
+                saveData();
+                renderTasks();
+                updateStats();
+            }
+        }
+        
+        function getQuadrant(task) {
+            if (task.urgent && task.important) return 'q1';
+            if (!task.urgent && task.important) return 'q2';
+            if (task.urgent && !task.important) return 'q3';
+            return 'q4';
+        }
+        
+        function formatDate(date) {
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return date.toLocaleDateString('de-DE', options);
+        }
+        
+        function isReviewSoon(reviewDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            reviewDate = new Date(reviewDate);
+            reviewDate.setHours(0, 0, 0, 0);
+            const diffDays = Math.ceil((reviewDate - today) / (1000 * 60 * 60 * 24));
+            return diffDays <= 2;
+        }
+        
+        function getIntervalText(days) {
+            if (days === 1) return '1 Tag';
+            if (days < 7) return days + ' Tage';
+            if (days === 7) return '1 Woche';
+            if (days === 14) return '2 Wochen';
+            if (days === 30) return '1 Monat';
+            if (days > 30) return Math.round(days / 30) + ' Monat(e)';
+            return days + ' Tage';
+        }
+        
+        function getDifficultyEmoji(difficulty) {
+            if (difficulty === 'easy') return '🟢';
+            if (difficulty === 'medium') return '🟡';
+            return '🔴';
+        }
+        
+        function updateStats() {
+            document.getElementById('total-tasks').textContent = tasks.length;
+            document.getElementById('completed-tasks').textContent = stats.totalCompleted;
+            
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const reviewsToday = tasks.filter(task => {
+                const reviewDate = new Date(task.reviewDate);
+                reviewDate.setHours(0, 0, 0, 0);
+                return reviewDate <= today;
+            }).length;
+            document.getElementById('today-reviews').textContent = reviewsToday;
+            
+            const completionRate = stats.totalCreated > 0 
+                ? Math.round((stats.totalCompleted / stats.totalCreated) * 100) 
+                : 0;
+            document.getElementById('completion-rate').textContent = completionRate + '%';
+            document.getElementById('progress-fill').style.width = completionRate + '%';
+        }
+        
+        function renderTasks() {
+            const quadrants = ['q1', 'q2', 'q3', 'q4'];
+            
+            quadrants.forEach(q => {
+                const container = document.getElementById(q + '-tasks');
+                const quadrantTasks = tasks.filter(task => getQuadrant(task) === q);
+                
+                document.getElementById(q + '-count').textContent = quadrantTasks.length;
+                
+                if (quadrantTasks.length === 0) {
+                    container.innerHTML = '<div class="empty-state">Keine Aufgaben in diesem Quadranten</div>';
+                    return;
+                }
+                
+                quadrantTasks.sort((a, b) => a.reviewDate - b.reviewDate);
+                
+                container.innerHTML = quadrantTasks.map(task => {
+                    const reviewSoon = isReviewSoon(task.reviewDate);
+                    return `
+                        <div class="task">
+                            <div class="task-header">
+                                <div class="task-title">${task.title}</div>
+                                <div>
+                                    <button class="btn-complete" onclick="completeTask(${task.id})">✓</button>
+                                    <button class="btn-delete" onclick="deleteTask(${task.id})">✕</button>
+                                </div>
+                            </div>
+                            <div class="task-meta">
+                                <span class="tag difficulty-${task.difficulty}">${getDifficultyEmoji(task.difficulty)} ${task.difficulty === 'easy' ? 'Leicht' : task.difficulty === 'medium' ? 'Mittel' : 'Schwer'}</span>
+                                <span class="tag">📅 Intervall: ${getIntervalText(task.interval)}</span>
+                                <span class="tag">✓ ${task.completedCount}x</span>
+                                <span class="review-date ${reviewSoon ? 'review-soon' : ''}">
+                                    🔄 Review: ${formatDate(task.reviewDate)}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            });
+        }
+        
+        function exportData() {
+            const exportObj = {
+                tasks: tasks,
+                stats: stats,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(exportObj, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'eisenhower-matrix-' + new Date().toISOString().split('T')[0] + '.json';
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+        
+        function showImportModal() {
+            document.getElementById('importModal').style.display = 'flex';
+        }
+        
+        function closeImportModal() {
+            document.getElementById('importModal').style.display = 'none';
+            document.getElementById('importData').value = '';
+        }
+        
+        function importData() {
+            try {
+                const importText = document.getElementById('importData').value;
+                const importObj = JSON.parse(importText);
+                
+                if (importObj.tasks && Array.isArray(importObj.tasks)) {
+                    tasks = importObj.tasks;
+                    tasks.forEach(task => {
+                        task.reviewDate = new Date(task.reviewDate);
+                        task.createdDate = new Date(task.createdDate);
+                    });
+                    
+                    if (importObj.stats) {
+                        stats = importObj.stats;
+                    }
+                    
+                    taskIdCounter = Math.max(...tasks.map(t => t.id), 0) + 1;
+                    
+                    saveData();
+                    renderTasks();
+                    updateStats();
+                    closeImportModal();
+                    alert('Daten erfolgreich importiert!');
+                } else {
+                    alert('Ungültiges Datenformat!');
+                }
+            } catch (error) {
+                alert('Fehler beim Importieren: ' + error.message);
+            }
+        }
+        
+        function clearAllData() {
+            if (confirm('Möchtest du wirklich ALLE Daten löschen? Diese Aktion kann nicht rückgängig gemacht werden!')) {
+                tasks = [];
+                stats = { totalCreated: 0, totalCompleted: 0 };
+                taskIdCounter = 0;
+                localStorage.removeItem('eisenhowerTasks');
+                localStorage.removeItem('eisenhowerStats');
+                localStorage.removeItem('taskCounter');
+                renderTasks();
+                updateStats();
+            }
+        }
+        
+        document.getElementById('taskInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTask();
+            }
+        });
+        
+        loadData();
+        renderTasks();
+        updateStats();
+    </script>
+</body>
+</html>
